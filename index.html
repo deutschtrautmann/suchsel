@@ -448,11 +448,13 @@
     .wortliste { justify-content: center; }
     .wort-chip { cursor: default; touch-action: auto; }
     .wort-chip.gefunden {
-        text-decoration: line-through;
-        opacity: 0.55;
         background: #eafaea;
         border-color: #9ed69e;
+        color: #1f6b1f;
+        font-weight: 600;
     }
+
+    #mascot-container { cursor: pointer; touch-action: manipulation; }
 
     /* ══════════════════════════════════════════════════════════
        RESPONSIVE BREAKPOINTS – Mobile · Tablet · Desktop
@@ -568,7 +570,7 @@
         .cell { background: #353c55; color: #e8eaf0; }
         .cell.selecting { background: #7a6a2a; }
         .cell.found { background: #2f5a34; color: #cdeccd; }
-        .wort-chip.gefunden { background: #24382a; border-color: #3a6a3a; }
+        .wort-chip.gefunden { background: #24382a; border-color: #3a6a3a; color: #b8e6b8; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -707,34 +709,52 @@ Winter, Frühling, Sommer, Herbst, Regen, Schnee, Wind, Wolke, Blitz, Donner`,
     modalSchliessen:  "Schließen",
     modalLeerFehler:  "Bitte gib mindestens ein Wort ein!",
 
-    maskottStart: "Hallo! Ich habe ein paar Wörter in diesem Buchstabengitter versteckt. Findest du sie alle?",
+    maskottStart: "Ich habe ein paar Wörter in diesem Kasten versteckt. Findest du sie alle?",
 
     begruessung: [
-        "Viel Glück beim Suchen!",
+        "Viel Erfolg beim Suchen!",
         "Willkommen zu einem neuen Suchsel!",
-        "Auf geht's, viel Spaß beim Suchen!"
+        "Auf geht's, viel Erfolg beim Suchen!",
+        "Ein neuer Kasten wartet auf dich!",
+        "Bereit für die nächste Runde?"
     ],
 
     neuGemischt: [
         "Neu gemischt, viel Erfolg!",
-        "Hier ist ein frisches Gitter für dich!",
-        "Nochmal von vorne, viel Spaß!"
+        "Hier ist ein frischer Kasten für dich!",
+        "Nochmal von vorne, viel Erfolg!"
     ],
 
     wortGefunden: [
         "Gefunden!",
-        "Super entdeckt!",
         "Genau richtig!",
-        "Klasse gesucht!"
+        "Sehr gut gesucht!",
+        "Richtig erkannt!",
+        "Gut gefunden!"
     ],
 
     alleGefunden: [
         "Wunderbar, alles gefunden!",
         "Perfekt gelöst!",
-        "Du hast ein echtes Adlerauge!"
+        "Du hast ein sehr gutes Auge fürs Detail!",
+        "Hervorragend, alle Wörter entdeckt!"
     ],
 
-    aufgabe:          "Finde alle Wörter im Buchstabengitter:",
+    // Maskottchen – falsch markiertes Wort
+    falsch: [
+        "Nur nicht aufgeben!",
+        "Das war leider kein Wort.",
+        "Es ist noch kein Meister vom Himmel gefallen.",
+        "Nur nicht entmutigen lassen!",
+        "Schau dir den Kasten noch einmal genau an."
+    ],
+
+    // Maskottchen – Tipp bei Antippen
+    tippAnkuendigung: "Ich gebe dir einen Hinweis.",
+    tippText: "Eines der Wörter beginnt mit {start} und endet mit {ende}.",
+    tippKeineWorte: "Du hast bereits alle Wörter gefunden!",
+
+    aufgabe:          "Finde alle Wörter im Kasten:",
     fortschritt:       "Rätsel {nr} von {gesamt}",
     gefundenAnzeige:   "{f} von {t} Wörtern gefunden",
     naechstesRaetsel:  "Weiter geht's mit Rätsel Nummer {nr}:",
@@ -765,6 +785,7 @@ let foundCount   = 0;
 let dragging   = false;
 let startCell  = null;
 let currentPath = [];
+let wrongStreak = 0;
 
 // Generative Audio-Variablen (Portal-Style Varianz)
 let proceduralSeed = 1;
@@ -815,8 +836,17 @@ function resetSleepTimer() {
     sleepTimer = setTimeout(putMascotToSleep, SLEEP_DELAY);
 }
 
+function handleGlobalInteraction() {
+    wakeUpMascot();
+    // Robustheit für iPad/Safari: AudioContext bei jeder Interaktion reaktivieren,
+    // falls er zwischenzeitlich (z.B. nach Tab-Wechsel) pausiert wurde.
+    if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
+}
 ['mousedown','touchstart','keydown','pointerdown'].forEach(evt => {
-    document.addEventListener(evt, wakeUpMascot, { passive: true });
+    document.addEventListener(evt, handleGlobalInteraction, { passive: true });
+});
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
 });
 resetSleepTimer();
 
@@ -1257,6 +1287,7 @@ function renderPuzzle(opts = {}) {
 
     currentPuzzle = generatePuzzleData(wordsMeta);
     foundCount = 0;
+    wrongStreak = 0;
 
     game.innerHTML = '';
     document.getElementById('mascot-container').classList.remove('has-heart');
@@ -1311,14 +1342,8 @@ function renderPuzzle(opts = {}) {
 
     const list = document.createElement('div');
     list.className = 'container wortliste';
-    currentPuzzle.words.forEach(w => {
-        const chip = document.createElement('div');
-        chip.className = 'word wort-chip';
-        chip.textContent = w.display;
-        list.appendChild(chip);
-        w.chipEl = chip;
-    });
     game.appendChild(list);
+    currentPuzzle.listEl = list;
 
     updateProgressText();
 }
@@ -1384,26 +1409,51 @@ function finalizeSelection() {
     startCell = null;
     if (!currentPuzzle || currentPath.length === 0) { currentPath = []; return; }
 
-    const letters = currentPath.map(([r, c]) => currentPuzzle.grid[r][c]).join('');
-    const reversed = letters.split('').reverse().join('');
-    const match = currentPuzzle.words.find(w => !w.found && (w.clean === letters || w.clean === reversed));
-
-    if (match) {
-        markWordFound(match, currentPath);
-    } else {
-        currentPuzzle.cellEls.flat().forEach(c => c.classList.remove('selecting'));
-    }
+    const path = currentPath;
     currentPath = [];
+
+    const letters = path.map(([r, c]) => currentPuzzle.grid[r][c]).join('');
+    const reversed = letters.split('').reverse().join('');
+    const match = currentPuzzle.words.find(w => w.clean === letters || w.clean === reversed);
+
+    currentPuzzle.cellEls.flat().forEach(c => c.classList.remove('selecting'));
+
+    if (match && !match.found) {
+        markWordFound(match, path);
+    } else if (match && match.found) {
+        // Wort wurde schon gefunden – keine negative Rückmeldung nötig
+    } else if (path.length >= 2) {
+        setMascotMood(true);
+        triggerMascotAnimation('shake');
+        updateMascot(getRandomElement(TEXTE.falsch));
+        playWrong();
+
+        wrongStreak++;
+        if (wrongStreak >= 3) {
+            wrongStreak = 0;
+            // Nach drei Fehlversuchen in Folge hilft das Schaf von sich aus,
+            // auch ohne dass extra danach gefragt wurde.
+            setTimeout(() => giveHint(), 1300);
+        }
+    }
 }
 
 function markWordFound(match, path) {
     match.found = true;
+    wrongStreak = 0;
     path.forEach(([r, c]) => {
         const cell = currentPuzzle.cellEls[r][c];
         cell.classList.remove('selecting');
         cell.classList.add('found');
     });
-    if (match.chipEl) match.chipEl.classList.add('gefunden');
+
+    if (currentPuzzle.listEl) {
+        const chip = document.createElement('div');
+        chip.className = 'word wort-chip gefunden';
+        chip.textContent = '✓ ' + match.display;
+        currentPuzzle.listEl.appendChild(chip);
+        match.chipEl = chip;
+    }
 
     foundCount++;
     updateProgressText();
@@ -1425,6 +1475,41 @@ function completePuzzle() {
     updateMascot(getRandomElement(TEXTE.alleGefunden));
     setTimeout(() => { currentIndex++; renderPuzzle(); }, 2200);
 }
+
+// ── Maskottchen-Tipp ──────────────────────────────────────────────
+let hintTimer = null;
+
+function giveHint() {
+    if (!currentPuzzle) return;
+    const remaining = currentPuzzle.words.filter(w => !w.found);
+    if (remaining.length === 0) {
+        setMascotMood(false);
+        triggerMascotAnimation('jump');
+        updateMascot(TEXTE.tippKeineWorte);
+        playClick();
+        return;
+    }
+
+    if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
+
+    setMascotMood(false);
+    triggerMascotAnimation('jump');
+    updateMascot(TEXTE.tippAnkuendigung);
+    playClick();
+
+    hintTimer = setTimeout(() => {
+        const word = getRandomElement(remaining);
+        const start = word.clean.charAt(0);
+        const ende = word.clean.charAt(word.clean.length - 1);
+        updateMascot(TEXTE.tippText.replace('{start}', start).replace('{ende}', ende));
+        hintTimer = null;
+    }, 1400);
+}
+
+document.getElementById('mascot-container').addEventListener('click', () => {
+    initAudio();
+    giveHint();
+});
 
 // ── Neu mischen ───────────────────────────────────────────────────
 document.getElementById('mischenBtn').addEventListener('click', () => {
