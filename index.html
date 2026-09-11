@@ -32,7 +32,7 @@
         user-select: none;
     }
 
-    /* Texteingaben dürfen weiterhin selektierbar sein */
+    
     textarea, input[type="text"] {
         -webkit-user-select: text;
         -moz-user-select: text;
@@ -150,7 +150,7 @@
         box-shadow: 0 1px 0 #21618c, 0 2px 5px rgba(0,0,0,0.2);
     }
 
-    /* "Neu mischen"-Knopf: zentriert und schmaler statt volle Breite */
+    
     #mischenBtn {
         max-width: 170px;
         margin-left: auto;
@@ -266,9 +266,7 @@
         -webkit-overflow-scrolling: touch;
     }
 
-    /* Thema-Auswahl: natives Pulldown-Menü, in der oberen Werkzeugleiste
-       ganz links neben "Textdatei" – bewusst gleich breit wie die
-       Knöpfe "Textdatei" und "Texteingabe" (siehe .top-button, #fileLabel). */
+    
     .thema-select {
         flex: 1 1 90px;
         max-width: 120px;
@@ -287,8 +285,7 @@
     }
     .thema-select:focus { outline: none; border-color: #4a90d9; }
 
-    /* Lautsprecher-Symbol: schlicht, einfarbig, ohne Button-Optik –
-       sitzt direkt neben dem Titel (rechts in der Titelzeile). */
+    
     .icon-plain-button {
         flex: 0 0 auto;
         width: 30px;
@@ -311,9 +308,7 @@
         position: static;
         overflow: visible;
     }
-    /* Verhindert, dass der generische Glanz-Overlay aller <button>-Elemente
-       (button::before) hier als zusätzliche helle Fläche über dem Icon
-       durchscheint. */
+    
     .icon-plain-button::before { content: none; }
     .icon-plain-button svg { width: 100%; height: 100%; display: block; }
     .icon-plain-button:active { opacity: 0.6; }
@@ -377,7 +372,7 @@
         box-shadow: 0 1px 0 #566061, 0 2px 5px rgba(0,0,0,0.2);
     }
 
-    /* ── Maskottchen Bereich (Schaf) ────────────────────────── */
+    
     #mascot-container {
         display: flex;
         align-items: center;
@@ -499,7 +494,7 @@
         40%, 80% { transform: translateX(6px); }
     }
 
-    /* ── Schlaf-Zustand ──────────────────────────────────────── */
+    
     .is-sleeping #mascot-image { animation: sleepFloat 3s ease-in-out infinite !important; }
     .is-sleeping #left-leg, .is-sleeping #right-leg, .is-sleeping #left-arm, .is-sleeping #right-arm {
         animation: none !important;
@@ -542,7 +537,7 @@
     .is-sleeping #mascot-speech-bubble { opacity: 0.55; transition: opacity 0.6s ease; }
     #mascot-container:not(.is-sleeping) #mascot-speech-bubble { opacity: 1; transition: opacity 0.4s ease; }
 
-    /* ── Suchsel-Gitter ───────────────────────────────────────── */
+    
     .suchsel-aufgabe { margin: 4px 0 12px 0; font-weight: 600; }
 
     .suchsel-grid-wrap {
@@ -579,7 +574,7 @@
         color: #333;
         cursor: pointer;
         user-select: none;
-        font-size: 16px; /* Fallback für Browser ohne Container Queries */
+        font-size: 16px; 
         font-size: clamp(9px, calc(88cqw / var(--cols)), 26px);
         transition: background 0.15s, color 0.15s, transform 0.1s;
     }
@@ -588,10 +583,7 @@
     }
     .cell.found { background: #b8e6b8; color: #1f6b1f; }
 
-    /* Lupen-Blase: zeigt den gerade berührten Buchstaben stark vergrößert
-       über dem Finger an. Wird nur bei Touch-Eingabe eingeblendet
-       (siehe JS: pointerType === 'touch'). Bei Maus/Trackpad/Stift bleibt
-       sie unsichtbar, damit dort keine zusätzliche Vergrößerung erscheint. */
+    
     #letterMagnifier {
         position: fixed;
         left: 0;
@@ -641,9 +633,7 @@
 
     #mascot-container { cursor: pointer; touch-action: manipulation; }
 
-    /* ══════════════════════════════════════════════════════════
-       RESPONSIVE BREAKPOINTS – Mobile · Tablet · Desktop
-       ══════════════════════════════════════════════════════════ */
+    
 
     html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
@@ -718,10 +708,7 @@
         #mascot-image { width: 88px; height: 98px; }
     }
 
-    /* ── Breitbildformat: Maskottchen links neben dem Spielfeld ──
-       Damit auf breiten, aber niedrigen Bildschirmen (z.B. Laptop,
-       Tablet quer) alles ohne Scrollen sichtbar bleibt, wandert das
-       Maskottchen in eine feste linke Spalte neben das Spielfeld. */
+    
     @media (min-width: 900px) and (min-aspect-ratio: 1/1) {
         #app-box {
             display: grid;
@@ -819,7 +806,7 @@
         *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
 
-    /* Credit-Badge (Urheberhinweis, dezent, Ecke unten rechts) */
+    
     #ss-credit{
         position:fixed; right:6px; bottom:4px; z-index:999;
         font-size:9px; line-height:1.2; color:#333; opacity:.4;
